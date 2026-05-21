@@ -542,6 +542,11 @@ function exportExcel(){
 // 页面加载时显示密码验证弹窗
 document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("passwordInput").focus();
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('portrait').catch(() => {
+      // 部分浏览器或 iOS 不支持锁定，保留 CSS 限制提示即可
+    });
+  }
 });
 
 </script>
