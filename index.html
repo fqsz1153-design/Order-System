@@ -1,555 +1,422 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>FreshPro System PRO</title>
-
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>进货数据中心 · 产品查询</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-body { 
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-  padding:10px; 
-  background:linear-gradient(135deg, #f5f0ff 0%, #ede5ff 100%);
-  margin:0;
-}
+  :root{
+    --paper:#EDEAE1;
+    --paper-raised:#F7F5EF;
+    --ink:#1F2A24;
+    --ink-soft:#5B665E;
+    --line:#C9C2AF;
+    --stamp:#B3402F;
+    --stamp-dim:#B3402F1a;
+    --seal:#2C5B4F;
+    --seal-dim:#2C5B4F1a;
+    --amber:#C68A2E;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.02) 0px, rgba(0,0,0,0.02) 1px, transparent 1px, transparent 34px);
+    color:var(--ink);
+    font-family:'JetBrains Mono', monospace;
+    min-height:100vh;
+    padding:28px 16px 80px;
+  }
 
-header {
-  background:linear-gradient(135deg, #6B4C9A 0%, #7B68BE 100%);
-  padding:20px;
-  border-radius:12px;
-  margin-bottom:15px;
-  box-shadow:0 4px 12px rgba(107, 76, 154, 0.3);
-  text-align:center;
-  color:white;
-}
+  .wrap{max-width:920px;margin:0 auto;}
 
-.logo-container {
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  gap:15px;
-}
+  /* Header — invoice stamp style */
+  header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    border-bottom:3px double var(--ink);
+    padding-bottom:16px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  .brand-mark{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .eyebrow{
+    font-size:11px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  h1{
+    font-family:'Zilla Slab', serif;
+    font-weight:700;
+    font-size:clamp(28px, 5vw, 40px);
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .stamp{
+    border:2.5px solid var(--stamp);
+    color:var(--stamp);
+    border-radius:6px;
+    padding:6px 12px;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    transform:rotate(-3deg);
+    white-space:nowrap;
+    align-self:flex-start;
+    margin-top:6px;
+  }
 
-.logo-text {
-  font-size:32px;
-}
+  /* Search */
+  .search-block{margin-bottom:20px;}
+  .search-row{
+    display:flex;
+    gap:10px;
+    background:var(--paper-raised);
+    border:1.5px solid var(--ink);
+    border-radius:4px;
+    padding:4px;
+  }
+  #searchInput{
+    flex:1;
+    border:none;
+    background:transparent;
+    padding:14px 12px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:16px;
+    color:var(--ink);
+    outline:none;
+  }
+  #searchInput::placeholder{color:#9a9384;}
+  .clear-btn{
+    border:none;
+    background:var(--ink);
+    color:var(--paper-raised);
+    padding:0 18px;
+    border-radius:2px;
+    font-family:'JetBrains Mono', monospace;
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+    letter-spacing:0.04em;
+  }
+  .clear-btn:hover{background:var(--stamp);}
+  .hint{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:8px;
+    padding-left:2px;
+  }
 
-header h1 {
-  margin:0;
-  font-size:28px;
-  font-weight:700;
-  letter-spacing:-0.5px;
-}
+  /* Status line */
+  .status{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-size:12px;
+    color:var(--ink-soft);
+    border-bottom:1px dashed var(--line);
+    padding-bottom:10px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .status b{color:var(--ink);font-weight:700;}
 
-header p {
-  margin:5px 0 0 0;
-  font-size:13px;
-  opacity:0.9;
-  letter-spacing:2px;
-}
+  /* Result cards */
+  #results{display:flex;flex-direction:column;gap:12px;}
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-left:4px solid var(--seal);
+    border-radius:3px;
+    padding:14px 16px;
+  }
+  .card-top{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    align-items:flex-start;
+    margin-bottom:8px;
+  }
+  .prod-name{
+    font-family:'Zilla Slab', serif;
+    font-weight:600;
+    font-size:16.5px;
+    line-height:1.35;
+    color:var(--ink);
+  }
+  .prod-name mark{
+    background:var(--amber);
+    color:#231a06;
+    padding:0 2px;
+    border-radius:2px;
+  }
+  .price-tag{
+    font-weight:700;
+    font-size:15px;
+    color:var(--seal);
+    white-space:nowrap;
+    text-align:right;
+  }
+  .price-tag small{display:block;font-weight:500;font-size:10.5px;color:var(--ink-soft);text-align:right;}
 
-.card {
-  background:white;
-  padding:15px;
-  margin-top:10px;
-  border-radius:12px;
-  box-shadow:0 2px 8px rgba(107, 76, 154, 0.15);
-  border-left:4px solid #6B4C9A;
-}
+  .meta-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(140px,1fr));
+    gap:6px 16px;
+    font-size:12px;
+    color:var(--ink-soft);
+    border-top:1px dashed var(--line);
+    padding-top:8px;
+    margin-top:4px;
+  }
+  .meta-grid div b{
+    display:block;
+    color:var(--ink);
+    font-weight:600;
+    font-size:12.5px;
+  }
+  .meta-grid div span.label{
+    font-size:10px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:#9a9384;
+  }
 
-button {
-  background:linear-gradient(135deg, #6B4C9A 0%, #7B68BE 100%);
-  color:white;
-  border:none;
-  padding:14px;
-  margin-top:10px;
-  font-size:18px;
-  width:100%;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:600;
-  transition:all 0.3s ease;
-  box-shadow:0 2px 8px rgba(107, 76, 154, 0.2);
-}
+  .empty, .loading, .error{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--ink-soft);
+    font-size:13.5px;
+    border:1px dashed var(--line);
+    border-radius:4px;
+    background:var(--paper-raised);
+  }
+  .error{color:var(--stamp);border-color:var(--stamp);}
+  .error code{
+    display:block;
+    margin-top:10px;
+    font-size:11px;
+    background:var(--stamp-dim);
+    padding:8px;
+    border-radius:3px;
+    word-break:break-all;
+  }
 
-button:hover {
-  background:linear-gradient(135deg, #5A3A8A 0%, #6B4C9A 100%);
-  box-shadow:0 4px 12px rgba(107, 76, 154, 0.3);
-  transform:translateY(-2px);
-}
+  footer{
+    text-align:center;
+    margin-top:40px;
+    font-size:11px;
+    color:var(--ink-soft);
+    letter-spacing:0.04em;
+  }
 
-input {
-  width:100%;
-  padding:14px;
-  margin-top:10px;
-  font-size:18px;
-  border:2px solid #E5DDF5;
-  border-radius:8px;
-  box-sizing:border-box;
-  transition:border-color 0.3s ease;
-}
-
-input:focus {
-  outline:none;
-  border-color:#6B4C9A;
-  box-shadow:0 0 8px rgba(107, 76, 154, 0.2);
-}
-
-.item {
-  padding:10px;
-  border-bottom:1px solid #eee;
-  cursor:pointer;
-  transition:all 0.2s ease;
-}
-
-.item:hover { 
-  background:#f5f0ff;
-  padding-left:15px;
-}
-
-.badge {
-  float:right;
-  background:linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
-  color:#333;
-  padding:4px 10px;
-  border-radius:20px;
-  font-weight:700;
-  font-size:12px;
-  box-shadow:0 2px 4px rgba(255, 215, 0, 0.3);
-}
-
-.status-dot {
-  display:inline-block;
-  width:12px;
-  height:12px;
-  background:#28a745;
-  border-radius:50%;
-  vertical-align:middle;
-  margin-left:8px;
-}
-
-h3 {
-  color:#6B4C9A;
-  margin-top:0;
-}
+  @media (prefers-reduced-motion: no-preference){
+    .card{transition:border-left-color 0.15s ease;}
+  }
 </style>
 </head>
-
 <body>
+<div class="wrap">
 
-<!-- 密码登录 -->
-<div id="loginPopup" style="display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; justify-content:center; align-items:center;">
-  <div style="background:white; padding:30px; border-radius:10px; text-align:center; min-width:300px; box-shadow:0 10px 40px rgba(0,0,0,0.2);">
-    <h2 style="color:#6B4C9A; margin-top:0;">🔐 Access Required</h2>
-    <p style="color:#555; margin:10px 0;">Enter password to continue:</p>
-    <input id="passwordInput" type="password" placeholder="Enter password" onkeypress="if(event.key==='Enter') verifyPassword()" style="width:100%; padding:12px; font-size:16px; margin:15px 0; box-sizing:border-box; border:2px solid #E5DDF5; border-radius:8px;" autofocus />
-    <button onclick="verifyPassword()" style="width:100%; padding:12px; font-size:18px; background:linear-gradient(135deg, #6B4C9A 0%, #7B68BE 100%);">Login</button>
-    <p style="color:#999; font-size:12px; margin-top:20px; letter-spacing:0.5px;">
-  </div>
-</div>
-
-<!-- Header with Logo -->
-<header>
-  <div class="logo-container">
-    <div class="logo-text">🌾</div>
-    <div>
-      <h1>FreshPro Foodmart</h1>
-      <p>ORDER SYSTEM</p>
+  <header>
+    <div class="brand-mark">
+      <span class="eyebrow">超市进货数据中心</span>
+      <h1>产品查询</h1>
     </div>
+    <div class="stamp">Live · 实时数据</div>
+  </header>
+
+  <div class="search-block">
+    <div class="search-row">
+      <input id="searchInput" type="text" placeholder="输入产品名关键字，例如：森永 草莓" autocomplete="off" autofocus />
+      <button class="clear-btn" id="clearBtn">清空</button>
+    </div>
+    <div class="hint">支持多个关键字（用空格分隔），不区分大小写，按到货日期倒序排列</div>
   </div>
-</header>
 
-<div class="card">
-  <button onclick="syncData()">🔄 Sync Cloud</button>
-  <p id="status">Status: Not Synced</p>
-</div>
+  <div class="status" id="status" style="display:none;">
+    <span>共 <b id="resultCount">0</b> 条记录，来自 <b id="productCount">0</b> 个产品</span>
+    <span id="dataMeta"></span>
+  </div>
 
-<div class="card">
-  <input id="barcode" placeholder="Scan UPC" onkeypress="handleEnter(event)" autofocus />
-</div>
+  <div id="results"></div>
 
-<div class="card">
-  <input id="search" placeholder="🔍 Search by Name" onkeypress="handleSearchEnter(event)" />
-  <button onclick="searchProducts()">Search</button>
 </div>
 
-<div class="card">
-  <h3>Items</h3>
-  <div id="list"></div>
-</div>
+<footer>数据来源：超市进货数据中心 Google Sheet · 页面每次搜索时读取最新数据</footer>
 
-<div class="card">
-  <button onclick="exportExcel()">📦 Export Excel</button>
-</div>
-
-<!-- 新产品 -->
-<div id="popup" style="display:none; position:fixed; top:10%; left:5%; width:90%; background:white; padding:20px; border-radius:10px; z-index:999;">
-<h3>Add Product</h3>
-<input id="new_upc" readonly>
-<input id="new_name" placeholder="Name">
-<input id="new_price" placeholder="Price">
-<input id="new_location" placeholder="Location">
-<input id="new_supplier" placeholder="Supplier">
-<input id="new_cost" placeholder="Cost">
-<button onclick="saveNewProduct()">💾 Save</button>
-<button onclick="closePopup()">Cancel</button>
-</div>
-
-<!-- 编辑 -->
-<div id="editPopup" style="display:none; position:fixed; top:10%; left:5%; width:90%; background:white; padding:20px; border-radius:10px; z-index:999;">
-<h3>Update Product</h3>
-<input id="edit_upc" readonly>
-<input id="edit_name">
-<input id="edit_price">
-<input id="edit_location">
-<input id="edit_supplier">
-<input id="edit_cost">
-<button onclick="updateProduct()">💾 Save</button>
-<button onclick="closeEdit()">Cancel</button>
-</div>
-
-<!-- 操作弹窗 -->
-<div id="actionPopup" style="display:none; position:fixed; top:15%; left:5%; width:90%; background:white; padding:20px; border-radius:12px; z-index:999;">
-<h3>Product Action</h3>
-<p id="actionInfo"></p>
-<div style="margin-top:8px; display:flex; gap:8px;">
-  <input id="action_qty" type="number" min="0" placeholder="Qty" style="flex:1; padding:8px; font-size:16px;" />
-  <button onclick="setItemQty()" style="flex:0 0 120px;">Set Qty</button>
-</div>
-<div style="margin-top:10px; display:flex; gap:8px;">
-  <button onclick="removeItem()">❌ Remove</button>
-  <button onclick="editItem()">✏️ Update</button>
-  <button onclick="closeAction()">Cancel</button>
-</div>
-</div>
-
-<!-- 搜索结果 -->
-<div id="searchPopup" style="display:none; position:fixed; top:10%; left:5%; width:90%; background:white; padding:20px; border-radius:10px; z-index:999; max-height:70vh; overflow-y:auto;">
-<div style="position:sticky; top:0; background:white; z-index:1000; display:flex; justify-content:flex-start; align-items:center; gap:10px; margin:-20px -20px 10px -20px; padding:10px 20px; border-bottom:1px solid #eee; border-radius:10px 10px 0 0;">
-  <button onclick="closeSearch()" style="width:auto; padding:10px 16px; font-size:40px; background:none; border:none; cursor:pointer; color:#999; margin:0; line-height:1;">×</button>
-  <h3 style="margin:0;">Search Results</h3>
-</div>
-<div id="searchResults"></div>
-<button onclick="closeSearch()" style="width:100%; margin-top:10px;">Close</button>
-</div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
+/* ============================================================
+   配置区：把下面的 CSV_URL 换成你自己「发布到网络」得到的链接
+   Google Sheet → 文件 → 分享 → 发布到网络（Publish to web）
+   → 选择对应的工作表分页 → 格式选 CSV → 复制链接粘贴到下面
+   ============================================================ */
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSHMpQcP7xFfRzIJEN2SpIXeo9ZtebCnFa44JfU62C5BhSKVa5D5yDgjTFzmxbG0ByN4GQjPZ7yQujX/pub?gid=0&single=true&output=csv";
 
-const API = "https://script.google.com/macros/s/AKfycbw8n_Yd8g0hY5UOQQlFLpuowfc35a0wtLCI1ac9k-46TVDB20iPtR9nXieb9tFQE5QNtQ/exec";
+/* 表格列顺序（对应 Google Sheet 的列 A-L） */
+const COLS = {
+  timestamp: 0,
+  fileName: 1,
+  invoiceNo: 2,
+  supplier: 3,
+  invoicedDate: 4,
+  upc: 5,
+  productName: 6,
+  size: 7,
+  delivery: 8,
+  qtyInCase: 9,
+  priceInCase: 10,
+  cost: 11
+};
 
-let db = {};
-let scanMap = {};
-let currentItem = null;
-let isAuthenticated = false;
-const PASSWORD = "7333";
-const statusEl = document.getElementById("status");
+const resultsEl = document.getElementById('results');
+const statusEl = document.getElementById('status');
+const resultCountEl = document.getElementById('resultCount');
+const productCountEl = document.getElementById('productCount');
+const dataMetaEl = document.getElementById('dataMeta');
+const searchInput = document.getElementById('searchInput');
+const clearBtn = document.getElementById('clearBtn');
 
-// 密码验证
-function verifyPassword(){
-  const pwd = document.getElementById("passwordInput").value;
-  if(pwd === PASSWORD) {
-    isAuthenticated = true;
-    document.getElementById("loginPopup").style.display = "none";
-    document.getElementById("passwordInput").value = "";
-    loadLocalDB();
-  } else {
-    alert("Incorrect password!");
-    document.getElementById("passwordInput").value = "";
+let allRows = [];
+let dataLoadedAt = null;
+
+function escapeHtml(str){
+  return String(str ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function highlight(text, keywords){
+  let out = escapeHtml(text);
+  keywords.forEach(k => {
+    if(!k) return;
+    const esc = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    out = out.replace(new RegExp('(' + esc + ')', 'ig'), '<mark>$1</mark>');
+  });
+  return out;
+}
+
+function parseDate(str){
+  if(!str) return 0;
+  const t = Date.parse(str);
+  return isNaN(t) ? 0 : t;
+}
+
+async function loadData(){
+  resultsEl.innerHTML = '<div class="loading">正在读取最新数据…</div>';
+  if(CSV_URL.includes('PASTE_YOUR_PUBLISHED_CSV_URL_HERE')){
+    resultsEl.innerHTML = `<div class="error">
+      尚未配置数据源。<br>请打开 index.html，把 CSV_URL 换成你 Google Sheet「发布到网络」得到的 CSV 链接。
+      <code>Google Sheet → 文件 → 分享 → 发布到网络 → 选择分页 → 格式选 CSV</code>
+    </div>`;
+    return;
+  }
+  try{
+    const res = await fetch(CSV_URL, {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const parsed = Papa.parse(text, {skipEmptyLines:true});
+    const rows = parsed.data;
+    // 第一行是表头，跳过
+    allRows = rows.slice(1).filter(r => r[COLS.productName] && r[COLS.productName].trim() !== '');
+    dataLoadedAt = new Date();
+    render('');
+  }catch(err){
+    resultsEl.innerHTML = `<div class="error">
+      数据加载失败：无法读取 CSV。<br>请确认该 Google Sheet 已「发布到网络」，且链接可以公开访问。
+      <code>${escapeHtml(err.message)}</code>
+    </div>`;
   }
 }
 
-// 同步
-function syncData() {
-  statusEl.innerText = "Syncing...";
-  fetch(API)
-  .then(r=>r.json())
-  .then(data=>{
-    db = {};
-    data.forEach(row=>{
-      db[row[1]] = {
-        name: row[0],
-        upc: row[1],
-        price: row[2],
-        location: row[3]||"",
-        supplier: row[4]||"",
-        cost: row[5]||0
-      };
-    });
-    localStorage.setItem("productDB", JSON.stringify(db));
-    statusEl.innerHTML = 'Status: Synced <span class="status-dot"></span>';
-  })
-  .catch(()=>{
-    statusEl.innerText = "Status: Not Synced";
+function search(query){
+  const keywords = query.trim().split(/\s+/).filter(Boolean).map(k => k.toLowerCase());
+  if(keywords.length === 0) return [];
+  return allRows.filter(row => {
+    const name = (row[COLS.productName] || '').toLowerCase();
+    return keywords.every(k => name.includes(k));
   });
 }
 
-function loadLocalDB(){
-  const d = localStorage.getItem("productDB");
-  if(d){
-    db = JSON.parse(d);
-    statusEl.innerText = "⚡ Local Mode";
-  }
-}
+function render(query){
+  const keywords = query.trim().split(/\s+/).filter(Boolean);
 
-function handleEnter(e){
-  if(e.key==="Enter") scanProduct();
-}
-
-function handleSearchEnter(e){
-  if(e.key==="Enter") searchProducts();
-}
-
-// 搜索产品 - 所有关键字都需要完全匹配（忽略大小写和符号）
-function searchProducts(){
-  const rawKeyword = document.getElementById("search").value.trim();
-  if(!rawKeyword) return alert("Please enter product name or UPC");
-
-  const normalize = text => String(text || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-  const keywords = rawKeyword.toLowerCase().split(/\s+/).filter(Boolean);
-
-  const results = Object.values(db)
-    .map(p => {
-      const fields = [p.name, p.upc, p.location, p.supplier, p.price, p.cost].join(" ");
-      const normalizedFields = normalize(fields);
-
-      // 检查所有关键字是否都存在于产品数据中
-      const allMatch = keywords.every(term => {
-        const normalizedTerm = normalize(term);
-        return normalizedFields.includes(normalizedTerm);
-      });
-
-      // 如果所有关键字都匹配，返回该产品
-      return { ...p, match: allMatch };
-    })
-    .filter(p => p.match)
-    .sort((a, b) => a.name.localeCompare(b.name));
-
-  if(results.length === 0){
-    alert("No products found. Make sure all keywords match.");
+  if(keywords.length === 0){
+    statusEl.style.display = 'none';
+    resultsEl.innerHTML = `<div class="empty">输入产品名关键字开始查询<br>例如「森永」或「森永 草莓」</div>`;
     return;
   }
 
-  const resultsHtml = results.map((p) => {
-    return '<div style="padding:10px; border:1px solid #ddd; margin:10px 0; border-radius:5px; cursor:pointer;" onclick="addFromSearch(\'' + p.upc + '\')">' +
-      '<b>' + p.name + '</b><br>' +
-      'UPC: ' + p.upc + '<br>' +
-      'Price: $' + p.price + ' | Location: ' + p.location + '<br>' +
-      'Supplier: ' + p.supplier + ' | Cost: $' + p.cost +
-    '</div>';
-  }).join("");
+  const matched = search(query).slice().sort((a,b) => parseDate(b[COLS.invoicedDate]) - parseDate(a[COLS.invoicedDate]));
 
-  document.getElementById("searchResults").innerHTML = resultsHtml;
-  document.getElementById("searchPopup").style.display = "block";
-}
+  statusEl.style.display = 'flex';
+  resultCountEl.textContent = matched.length;
+  const uniqueNames = new Set(matched.map(r => r[COLS.productName]));
+  productCountEl.textContent = uniqueNames.size;
+  dataMetaEl.textContent = dataLoadedAt ? ('数据读取于 ' + dataLoadedAt.toLocaleTimeString('zh-CN')) : '';
 
-function addFromSearch(upc){
-  if(!scanMap[upc]) scanMap[upc] = {...db[upc], qty:0};
-  scanMap[upc].qty++;
-  renderList();
-  closeSearch();
-  document.getElementById("search").value = "";
-}
-
-function closeSearch(){
-  document.getElementById("searchPopup").style.display = "none";
-}
-
-// 扫码
-function scanProduct(){
-  const code = barcode.value.trim();
-  if(!code) return;
-
-  const p = db[code];
-
-  if(!p){
-    if(confirm("Not found. Add?")) openPopup(code);
+  if(matched.length === 0){
+    resultsEl.innerHTML = `<div class="empty">没有找到匹配「${escapeHtml(query)}」的产品<br>试试更少或不同的关键字</div>`;
     return;
   }
 
-  if(!scanMap[code]) scanMap[code] = {...p, qty:0};
-  scanMap[code].qty++;
+  resultsEl.innerHTML = matched.map(row => {
+    const name = row[COLS.productName] || '';
+    const upc = row[COLS.upc] || '—';
+    const supplier = row[COLS.supplier] || '—';
+    const date = row[COLS.invoicedDate] || '—';
+    const size = row[COLS.size] || '—';
+    const qty = row[COLS.qtyInCase] || '—';
+    const priceInCase = row[COLS.priceInCase] || '—';
+    const cost = row[COLS.cost] || '—';
+    const invoiceNo = row[COLS.invoiceNo] || '—';
 
-  renderList();
-  barcode.value="";
-}
-
-// 渲染
-function renderList(){
-  list.innerHTML="";
-  Object.values(scanMap).reverse().forEach(p=>{
-    const d=document.createElement("div");
-    d.className="item";
-
-    d.innerHTML=`
-      <b>${p.name}</b> <span class="badge">${p.qty} cs</span><br>
-      UPC: ${p.upc}<br>
-      Price: $${p.price}<br>
-      Loc: ${p.location}<br>
-      Supplier: ${p.supplier}<br>
-      Cost: $${p.cost}
+    return `
+      <div class="card">
+        <div class="card-top">
+          <div class="prod-name">${highlight(name, keywords)}</div>
+          <div class="price-tag">${escapeHtml(priceInCase)}<small>整箱价</small></div>
+        </div>
+        <div class="meta-grid">
+          <div><span class="label">到货日期</span><b>${escapeHtml(date)}</b></div>
+          <div><span class="label">供应商</span><b>${escapeHtml(supplier)}</b></div>
+          <div><span class="label">UPC 条码</span><b>${escapeHtml(upc)}</b></div>
+          <div><span class="label">规格 / 箱规</span><b>${escapeHtml(size !== '—' ? size : qty)}</b></div>
+          <div><span class="label">成本</span><b>${escapeHtml(cost)}</b></div>
+          <div><span class="label">发票号</span><b>${escapeHtml(invoiceNo)}</b></div>
+        </div>
+      </div>
     `;
-
-    d.onclick=()=>showActionPopup(p);
-    list.appendChild(d);
-  });
+  }).join('');
 }
 
-// Action
-function showActionPopup(p){
-  currentItem=p;
-  actionInfo.innerHTML=`
-  <b>${p.name}</b><br>
-  ${p.upc}<br>
-  $${p.price} | ${p.location}<br>
-  ${p.supplier} | $${p.cost}
-  `;
-  // populate qty input
-  const qtyInput = document.getElementById('action_qty');
-  if(qtyInput) qtyInput.value = p.qty || 0;
-  actionPopup.style.display="block";
-}
-
-function closeAction(){ actionPopup.style.display="none"; }
-
-function removeItem(){
-  delete scanMap[currentItem.upc];
-  closeAction();
-  renderList();
-}
-
-function editItem(){
-  closeAction();
-  openEditPopup(currentItem);
-}
-
-function setItemQty(){
-  const v = parseInt(document.getElementById('action_qty').value || '0', 10);
-  if(isNaN(v) || v < 0) return alert('Enter a valid quantity');
-  if(!currentItem) return;
-  if(v === 0){
-    // remove if zero
-    delete scanMap[currentItem.upc];
-  } else {
-    if(!scanMap[currentItem.upc]) scanMap[currentItem.upc] = {...db[currentItem.upc], qty:0};
-    scanMap[currentItem.upc].qty = v;
-  }
-  closeAction();
-  renderList();
-}
-
-// 新产品
-function openPopup(code){
-  popup.style.display="block";
-  new_upc.value=code;
-}
-
-function closePopup(){ popup.style.display="none"; }
-
-function saveNewProduct(){
-  const data={
-    upc:new_upc.value,
-    name:new_name.value,
-    price:new_price.value,
-    location:new_location.value,
-    supplier:new_supplier.value,
-    cost:new_cost.value
-  };
-
-  fetch(API,{method:"POST",body:JSON.stringify(data)})
-  .then(()=>{
-    db[data.upc]=data;
-    localStorage.setItem("productDB",JSON.stringify(db));
-    closePopup();
-  });
-}
-
-// 编辑
-function openEditPopup(p){
-  editPopup.style.display="block";
-  edit_upc.value=p.upc;
-  edit_name.value=p.name;
-  edit_price.value=p.price;
-  edit_location.value=p.location;
-  edit_supplier.value=p.supplier;
-  edit_cost.value=p.cost;
-}
-
-function closeEdit(){ editPopup.style.display="none"; }
-
-function updateProduct(){
-  const data={
-    action:"update",
-    upc:edit_upc.value,
-    name:edit_name.value,
-    price:edit_price.value,
-    location:edit_location.value,
-    supplier:edit_supplier.value,
-    cost:edit_cost.value
-  };
-
-  fetch(API,{method:"POST",body:JSON.stringify(data)})
-  .then(()=>{
-    db[data.upc]=data;
-    scanMap[data.upc]={...data,qty:scanMap[data.upc].qty};
-    localStorage.setItem("productDB",JSON.stringify(db));
-    closeEdit();
-    renderList();
-  });
-}
-
-// Excel
-function exportExcel(){
-  const items=Object.values(scanMap);
-  if(!items.length) return alert("No data");
-
-  const wb=XLSX.utils.book_new();
-  const group={};
-
-  items.forEach(p=>{
-    if(!group[p.supplier]) group[p.supplier]=[];
-    group[p.supplier].push(p);
-  });
-
-  Object.keys(group).forEach(s=>{
-    const arr=[["UPC","Name","Qty","Cost","Total"]];
-    group[s].forEach(p=>{
-      arr.push([p.upc,p.name,p.qty,p.cost,p.qty*p.cost]);
-    });
-    const ws=XLSX.utils.aoa_to_sheet(arr);
-    
-    // 自动调整列宽
-    const colWidths = [];
-    arr[0].forEach((_, colIdx) => {
-      let maxLen = arr[0][colIdx].toString().length;
-      for(let row = 1; row < arr.length; row++){
-        const len = arr[row][colIdx].toString().length;
-        if(len > maxLen) maxLen = len;
-      }
-      colWidths.push({wch: maxLen + 2});
-    });
-    ws['!cols'] = colWidths;
-    
-    XLSX.utils.book_append_sheet(wb,ws,s);
-  });
-
-  const now = new Date();
-  const pad = num => String(num).padStart(2, "0");
-  const fileName = `7333 Goreway ${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()}/ ${pad(now.getHours())}.xlsx`;
-  XLSX.writeFile(wb, fileName);
-}
-
-// 页面加载时显示密码验证弹窗
-document.addEventListener("DOMContentLoaded", function() {
-  document.getElementById("passwordInput").focus();
-  if (screen.orientation && screen.orientation.lock) {
-    screen.orientation.lock('portrait').catch(() => {
-      // 部分浏览器或 iOS 不支持锁定，保留 CSS 限制提示即可
-    });
-  }
+let debounceTimer;
+searchInput.addEventListener('input', (e) => {
+  clearTimeout(debounceTimer);
+  const val = e.target.value;
+  debounceTimer = setTimeout(() => render(val), 120);
 });
 
-</script>
+clearBtn.addEventListener('click', () => {
+  searchInput.value = '';
+  render('');
+  searchInput.focus();
+});
 
+loadData();
+</script>
 </body>
 </html>
