@@ -240,10 +240,10 @@
 
   <div class="search-block">
     <div class="search-row">
-      <input id="searchInput" type="text" placeholder="输入产品名关键字，例如：森永 草莓" autocomplete="off" autofocus />
+      <input id="searchInput" type="text" placeholder="输入关键词组，组内顺序不重要，组完成后加一个空格" autocomplete="off" autofocus />
       <button class="clear-btn" id="clearBtn">清空</button>
     </div>
-    <div class="hint">支持多个关键字（用空格分隔），不区分大小写，按到货日期倒序排列</div>
+    <div class="hint">每输入完一个关键词组并跟一个空格，就会开始查询；组内关键词顺序不重要，不区分大小写，按到货日期倒序排列</div>
   </div>
 
   <div class="status" id="status" style="display:none;">
@@ -342,8 +342,20 @@ async function loadData(){
   }
 }
 
+function getCompletedKeywords(query){
+  const raw = query || '';
+  const trimmed = raw.trim();
+  if(!trimmed) return { keywords: [], hasCompletedGroup: false };
+
+  const endedWithSpace = /\s$/.test(raw);
+  if(!endedWithSpace) return { keywords: [], hasCompletedGroup: false };
+
+  const keywords = trimmed.split(/\s+/).filter(Boolean).map(k => k.toLowerCase());
+  return { keywords, hasCompletedGroup: keywords.length > 0 };
+}
+
 function search(query){
-  const keywords = query.trim().split(/\s+/).filter(Boolean).map(k => k.toLowerCase());
+  const { keywords } = getCompletedKeywords(query);
   if(keywords.length === 0) return [];
   return allRows.filter(row => {
     const name = (row[COLS.productName] || '').toLowerCase();
@@ -352,11 +364,15 @@ function search(query){
 }
 
 function render(query){
-  const keywords = query.trim().split(/\s+/).filter(Boolean);
+  const { keywords, hasCompletedGroup } = getCompletedKeywords(query);
 
-  if(keywords.length === 0){
+  if(!hasCompletedGroup){
     statusEl.style.display = 'none';
-    resultsEl.innerHTML = `<div class="empty">输入产品名关键字开始查询<br>例如「森永」或「森永 草莓」</div>`;
+    if(query.trim() !== ''){
+      resultsEl.innerHTML = `<div class="empty">输入关键词组后再补一个空格，才会开始查询<br>例如「森永 」或「森永 草莓 」</div>`;
+    } else {
+      resultsEl.innerHTML = `<div class="empty">输入关键词组并在末尾输入空格后开始查询<br>例如「森永 」或「森永 草莓 」</div>`;
+    }
     return;
   }
 
@@ -369,7 +385,7 @@ function render(query){
   dataMetaEl.textContent = dataLoadedAt ? ('数据读取于 ' + dataLoadedAt.toLocaleTimeString('zh-CN')) : '';
 
   if(matched.length === 0){
-    resultsEl.innerHTML = `<div class="empty">没有找到匹配「${escapeHtml(query)}」的产品<br>试试更少或不同的关键字</div>`;
+    resultsEl.innerHTML = `<div class="empty">没有找到匹配「${escapeHtml(keywords.join(' '))}」的产品<br>试试更少或不同的关键字</div>`;
     return;
   }
 
